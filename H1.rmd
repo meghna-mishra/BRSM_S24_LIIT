@@ -1,0 +1,138 @@
+---
+title: "Project"
+author: "Long Island Iced Tea"
+output:
+  pdf_document:
+    toc: yes
+  html_document:
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+```
+
+```{r}
+library(car)
+library(dplyr)
+library(ggplot2)
+library(psych)
+```
+
+# Data Preparation
+
+```{r}
+data <- read.csv("All_Data_p.csv")
+data <- subset(data, select = c(trialnum, choice, blocktype, RGPTS_persecution, RGPTS_reference))
+data <- subset(data, blocktype != '4')
+df <- subset(data, select = c(choice, blocktype, RGPTS_persecution, RGPTS_reference), trialnum == 4)
+df_advice <- subset(df, select = c(choice, RGPTS_persecution, RGPTS_reference), blocktype == 'advice')
+df_eaves <- subset(df, select = c(choice, RGPTS_persecution, RGPTS_reference), blocktype == 'eavesdrop')
+```
+
+# Exploratory Analysis
+
+## Data Summary
+
+```{r}
+summary(data)
+```
+
+## Frequency Histograms of RGPTS scores
+
+```{r}
+ggplot(df_advice, aes(x = RGPTS_persecution)) +
+  geom_bar() +
+  labs(title = "Distribution of RGPTS_persecution")
+
+ggplot(df_advice, aes(x = RGPTS_reference)) +
+  geom_bar() +
+  labs(title = "Distribution of RGPTS_reference")
+```
+
+# Assumption Testing
+
+## Linearity
+
+```{r}
+model <- glm(choice ~ RGPTS_persecution + RGPTS_reference, data = df_advice, family = 'binomial')
+model2 <- glm(choice ~ RGPTS_persecution + RGPTS_reference, data = df_eaves, family = 'binomial')
+
+crPlots(model)
+crPlots(model2)
+```
+
+## Outliers
+
+```{r}
+plot(model, which=4)
+plot(model2, which=4)
+```
+
+## Multicollinearity
+
+```{r}
+print("Advice")
+vif(model)
+print("Observation")
+vif(model2)
+```
+
+# Model Summary
+
+```{r}
+summary(model)
+```
+
+```{r}
+summary(model2)
+```
+
+```{r}
+confint(model)
+exp(coef(model))
+exp(confint(model))
+```
+
+```{r}
+confint(model2)
+exp(coef(model2))
+exp(confint(model2))
+```
+
+# Both R-GPTS or one?
+
+```{r}
+modelnew <- glm(choice ~ RGPTS_persecution, data = df_advice, family = 'binomial')
+modelnew1 <- glm(choice ~ RGPTS_persecution, data = df_eaves, family = 'binomial')
+
+print("Original Models")
+print("Advice")
+AIC(model)
+print("Observation")
+AIC(model2)
+```
+```{r}
+print("New Models")
+print("Advice")
+AIC(modelnew)
+print("Observation")
+AIC(modelnew1)
+```
+# Accounting for Fluid Intelligence
+
+```{r}
+data <- read.csv("All_Data_p.csv")
+data <- subset(data, select = c(trialnum, choice, blocktype, RGPTS_persecution, RGPTS_reference, puzzle_score))
+data <- subset(data, blocktype != '4')
+df <- subset(data, select = c(choice, blocktype, RGPTS_persecution, RGPTS_reference, puzzle_score), trialnum == 4)
+df_advice <- subset(df, select = c(choice, RGPTS_persecution, RGPTS_reference, puzzle_score), blocktype == 'advice')
+df_eaves <- subset(df, select = c(choice, RGPTS_persecution, RGPTS_reference, puzzle_score), blocktype == 'eavesdrop')
+modelf <- glm(choice ~ RGPTS_persecution + RGPTS_reference + puzzle_score,
+             data = df_advice, family = "binomial")
+modelf1 <- glm(choice ~ RGPTS_persecution + RGPTS_reference + puzzle_score,
+             data = df_eaves, family = "binomial")
+summary(modelf)
+summary(modelf1)
+```
